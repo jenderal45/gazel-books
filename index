@@ -1,0 +1,2552 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>GazelBooks — Pembukuan UMKM (MVP)</title>
+  <meta name="description" content="GazelBooks MVP: pembukuan sederhana UMKM. Buku kas, invoice, hutang/piutang, laporan, export, dan kalkulator keuangan." />
+
+  <style>
+    :root{
+      --bg:#070b14;
+      --panel:#0b1220;
+      --panel2:#0f1a2f;
+      --text:#e7eefc;
+      --muted:#9bb0d1;
+      --muted2:#7f95bd;
+      --line:rgba(255,255,255,.08);
+      --line2:rgba(255,255,255,.12);
+      --soft:rgba(255,255,255,.04);
+      --soft2:rgba(255,255,255,.06);
+      --brand:#7c3aed;
+      --brand2:#a78bfa;
+      --good:#22c55e;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+      --shadow:0 18px 60px rgba(0,0,0,.45);
+      --radius:20px;
+      --radius2:26px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:
+        radial-gradient(900px 520px at 20% 0%, rgba(124,58,237,.22), transparent 60%),
+        radial-gradient(800px 520px at 100% 30%, rgba(34,197,94,.10), transparent 60%),
+        radial-gradient(800px 520px at 50% 120%, rgba(59,130,246,.12), transparent 60%),
+        linear-gradient(180deg, #060914 0%, #070b14 100%);
+      color:var(--text);
+      overflow-x:hidden;
+    }
+
+    a{ color:inherit; text-decoration:none; }
+    button, input, select, textarea{ font:inherit; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar{ width:10px; height:10px; }
+    ::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.12); border-radius:999px; }
+    ::-webkit-scrollbar-track{ background:rgba(255,255,255,.03); }
+
+    /* Layout */
+    .app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns: 290px 1fr;
+    }
+
+    .sidebar{
+      position:sticky;
+      top:0;
+      height:100vh;
+      padding:18px;
+      border-right:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      backdrop-filter: blur(10px);
+    }
+
+    .main{
+      padding:18px;
+      min-width:0;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+      border-radius:18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
+    }
+
+    .logo{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.28), transparent 45%),
+        linear-gradient(135deg, rgba(124,58,237,1), rgba(59,130,246,1));
+      display:grid;
+      place-items:center;
+      font-weight:900;
+      letter-spacing:.5px;
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:15px;
+      line-height:1.2;
+    }
+
+    .brand p{
+      margin:2px 0 0;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .nav{
+      margin-top:14px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .nav button{
+      text-align:left;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+      color:var(--text);
+      padding:12px 12px;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+
+    .nav button:hover{ transform: translateY(-1px); border-color: rgba(167,139,250,.35); background: rgba(124,58,237,.08); }
+    .nav button.active{ border-color: rgba(167,139,250,.55); background: rgba(124,58,237,.12); }
+
+    .nav .left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+
+    .ico{
+      width:34px;
+      height:34px;
+      border-radius:12px;
+      display:grid;
+      place-items:center;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      flex:0 0 auto;
+    }
+
+    .nav .title{
+      font-weight:700;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .nav .sub{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-top:2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .chip{
+      font-family:var(--mono);
+      font-size:11px;
+      color:rgba(255,255,255,.9);
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding:6px 8px;
+      border-radius:999px;
+    }
+
+    .sideFooter{
+      position:absolute;
+      left:18px;
+      right:18px;
+      bottom:18px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:12px;
+      background: rgba(255,255,255,.02);
+    }
+
+    .sideFooter .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .sideFooter .small{ color:var(--muted); font-size:12px; margin-top:6px; line-height:1.4; }
+
+    /* Topbar */
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      padding:12px 12px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar h2{ margin:0; font-size:18px; letter-spacing:-.2px; }
+    .topbar p{ margin:6px 0 0; color:var(--muted); font-size:13px; }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+    }
+
+    .btn:hover{ transform: translateY(-1px); border-color: rgba(167,139,250,.35); background: rgba(124,58,237,.10); }
+    .btn.primary{ border-color: rgba(167,139,250,.55); background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(59,130,246,.85)); }
+    .btn.primary:hover{ background: linear-gradient(135deg, rgba(124,58,237,1), rgba(59,130,246,.95)); }
+    .btn.danger:hover{ border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.10); }
+
+    .content{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+      align-items:start;
+    }
+
+    .card{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card .hd{
+      padding:14px 14px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .card .hd h3{ margin:0; font-size:14px; }
+    .card .hd .muted{ color:var(--muted); font-size:12px; }
+
+    .card .bd{ padding:14px; }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; }
+
+    .kpi{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius: 18px;
+      padding:12px;
+    }
+    .kpi .label{ color:var(--muted); font-size:12px; }
+    .kpi .val{ margin-top:8px; font-size:18px; font-weight:800; letter-spacing:-.3px; }
+    .kpi .hint{ margin-top:4px; color:var(--muted2); font-size:12px; }
+
+    .kpi.good .val{ color: rgba(34,197,94,.95); }
+    .kpi.bad .val{ color: rgba(239,68,68,.95); }
+
+    /* Forms */
+    .form{
+      display:grid;
+      gap:10px;
+    }
+
+    .row2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .row3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+
+    label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+
+    .field input, .field select, .field textarea{
+      width:100%;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color:var(--text);
+      padding:11px 12px;
+      border-radius: 14px;
+      outline:none;
+      transition: border-color .12s ease, background .12s ease;
+    }
+
+    .field textarea{ min-height:88px; resize: vertical; }
+
+    .field input:focus, .field select:focus, .field textarea:focus{
+      border-color: rgba(167,139,250,.55);
+      background: rgba(124,58,237,.06);
+    }
+
+    .hintLine{ color:var(--muted2); font-size:12px; line-height:1.35; }
+
+    /* Table */
+    .tableWrap{ overflow:auto; border-radius:18px; border:1px solid var(--line); }
+    table{ width:100%; border-collapse:collapse; min-width: 860px; }
+    th, td{ padding:12px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th{ font-size:12px; color:var(--muted); font-weight:700; background: rgba(255,255,255,.02); position:sticky; top:0; z-index:1; }
+    td{ font-size:13px; }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      color: rgba(255,255,255,.92);
+      white-space:nowrap;
+    }
+    .badge.in{ border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.08); }
+    .badge.out{ border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.08); }
+
+    .mono{ font-family:var(--mono); }
+
+    .tdActions{ display:flex; gap:8px; justify-content:flex-end; }
+    .iconBtn{
+      width:38px;
+      height:38px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      color:var(--text);
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      display:grid;
+      place-items:center;
+    }
+    .iconBtn:hover{ transform: translateY(-1px); border-color: rgba(167,139,250,.35); background: rgba(124,58,237,.08); }
+    .iconBtn.danger:hover{ border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.10); }
+
+    /* Modal */
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:50;
+    }
+    .modalOverlay.open{ display:flex; }
+
+    .modal{
+      width:min(920px, 100%);
+      border:1px solid var(--line);
+      background: rgba(11,18,32,.92);
+      border-radius: 26px;
+      box-shadow: 0 25px 90px rgba(0,0,0,.6);
+      overflow:hidden;
+    }
+
+    .modal .mh{
+      padding:14px 14px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .modal .mh h3{ margin:0; font-size:15px; }
+    .modal .mh p{ margin:6px 0 0; color:var(--muted); font-size:12px; }
+
+    .modal .mb{ padding:14px; }
+
+    /* Toast */
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      width:min(420px, calc(100% - 36px));
+      border:1px solid var(--line);
+      background: rgba(11,18,32,.88);
+      border-radius: 20px;
+      padding:12px 12px;
+      box-shadow: 0 18px 70px rgba(0,0,0,.55);
+      display:none;
+      z-index:60;
+    }
+    .toast.open{ display:block; }
+    .toast .t1{ font-weight:800; }
+    .toast .t2{ margin-top:4px; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    /* Mobile */
+    .mNav{ display:none; }
+
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{ display:none; }
+      .main{ padding:14px; }
+      .content{ grid-template-columns: 1fr; }
+      table{ min-width: 780px; }
+
+      .mNav{
+        display:flex;
+        gap:10px;
+        overflow:auto;
+        padding:10px 2px 0;
+        scrollbar-width:none;
+      }
+      .mNav::-webkit-scrollbar{ display:none; }
+      .mNav button{
+        flex:0 0 auto;
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.02);
+        color:var(--text);
+        padding:10px 12px;
+        border-radius:999px;
+        cursor:pointer;
+        transition: border-color .12s ease, background .12s ease;
+        font-size:13px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+      }
+      .mNav button.active{ border-color: rgba(167,139,250,.55); background: rgba(124,58,237,.12); }
+
+      .row2, .row3, .grid2, .grid3{ grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      *{ transition:none !important; scroll-behavior:auto !important; }
+    }
+
+    /* Print */
+    @media print{
+      body{ background:#fff; color:#000; }
+      .sidebar, .topbar .actions, .mNav, .iconBtn, .btn{ display:none !important; }
+      .card, .topbar{ box-shadow:none; border-color:#ddd; background:#fff; }
+      .kpi{ border-color:#ddd; }
+      th{ position:static; }
+      table{ min-width:0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">G</div>
+        <div style="min-width:0">
+          <h1>GazelBooks</h1>
+          <p>Pembukuan UMKM • MVP Offline</p>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav"></nav>
+
+      <div class="sideFooter">
+        <div class="row">
+          <div>
+            <div style="font-weight:800; font-size:13px;">Mode: Offline</div>
+            <div class="small">Data tersimpan di browser (LocalStorage). Cocok untuk demo sales & MVP cepat.</div>
+          </div>
+          <span class="chip" id="ver">v1.0</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageDesc">Ringkasan kas, profit, hutang/piutang, dan performa bisnis.</p>
+
+          <div class="mNav" id="mNav"></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="btnExport"><span>⬇️</span> Export JSON</button>
+          <button class="btn" id="btnImport"><span>⬆️</span> Import JSON</button>
+          <button class="btn" id="btnReset"><span>🧨</span> Reset Demo</button>
+          <button class="btn primary" id="btnQuickAdd"><span>➕</span> Transaksi</button>
+        </div>
+      </section>
+
+      <section class="content" id="content"></section>
+    </main>
+  </div>
+
+  <!-- Modal: Quick Add Transaction -->
+  <div class="modalOverlay" id="modalTx">
+    <div class="modal">
+      <div class="mh">
+        <div>
+          <h3>Tambah Transaksi</h3>
+          <p>Input cepat untuk pemasukan/pengeluaran. Otomatis masuk ke Buku Kas.</p>
+        </div>
+        <button class="iconBtn" id="closeTx" title="Tutup">✕</button>
+      </div>
+      <div class="mb">
+        <form class="form" id="txForm">
+          <div class="row3">
+            <div class="field">
+              <label>Tanggal</label>
+              <input type="date" id="txDate" required />
+            </div>
+            <div class="field">
+              <label>Jenis</label>
+              <select id="txType" required>
+                <option value="in">Pemasukan</option>
+                <option value="out">Pengeluaran</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Jumlah (Rp)</label>
+              <input type="number" id="txAmount" min="0" step="100" placeholder="contoh: 250000" required />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>Kategori</label>
+              <select id="txCategory" required></select>
+            </div>
+            <div class="field">
+              <label>Metode</label>
+              <select id="txMethod" required>
+                <option value="cash">Cash</option>
+                <option value="bank">Transfer/Bank</option>
+                <option value="ewallet">E-Wallet</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Keterangan</label>
+            <input id="txNote" maxlength="120" placeholder="contoh: Pembelian bahan baku" />
+          </div>
+
+          <div class="row2">
+            <button type="button" class="btn" id="btnTxCancel">Batal</button>
+            <button type="submit" class="btn primary">Simpan Transaksi</button>
+          </div>
+
+          <div class="hintLine">Tips: Untuk UMKM, yang penting rapi dulu. Nanti baru upgrade ke jurnal akuntansi lengkap.</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Invoice -->
+  <div class="modalOverlay" id="modalInv">
+    <div class="modal">
+      <div class="mh">
+        <div>
+          <h3>Buat Invoice</h3>
+          <p>Invoice sederhana + PDF print (via browser). Bisa ditandai "Paid".</p>
+        </div>
+        <button class="iconBtn" id="closeInv" title="Tutup">✕</button>
+      </div>
+      <div class="mb">
+        <form class="form" id="invForm">
+          <div class="row3">
+            <div class="field">
+              <label>Tanggal</label>
+              <input type="date" id="invDate" required />
+            </div>
+            <div class="field">
+              <label>Jatuh Tempo</label>
+              <input type="date" id="invDue" required />
+            </div>
+            <div class="field">
+              <label>No. Invoice</label>
+              <input id="invNo" required placeholder="GB-INV-0001" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>Nama Pelanggan</label>
+              <input id="invCustomer" required placeholder="contoh: PT Maju Jaya" />
+            </div>
+            <div class="field">
+              <label>Kontak (opsional)</label>
+              <input id="invContact" placeholder="WA / Email" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label>Deskripsi</label>
+              <input id="invDesc" required placeholder="contoh: Jasa desain & konten" />
+            </div>
+            <div class="field">
+              <label>Total (Rp)</label>
+              <input type="number" id="invTotal" min="0" step="100" required placeholder="contoh: 1500000" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <button type="button" class="btn" id="btnInvCancel">Batal</button>
+            <button type="submit" class="btn primary">Simpan Invoice</button>
+          </div>
+
+          <div class="hintLine">Invoice yang dibayar bisa otomatis menambah pemasukan ke Buku Kas.</div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Import -->
+  <div class="modalOverlay" id="modalImport">
+    <div class="modal">
+      <div class="mh">
+        <div>
+          <h3>Import Data (JSON)</h3>
+          <p>Tempel file JSON export dari GazelBooks untuk restore data.</p>
+        </div>
+        <button class="iconBtn" id="closeImport" title="Tutup">✕</button>
+      </div>
+      <div class="mb">
+        <div class="form">
+          <div class="field">
+            <label>Tempel JSON</label>
+            <textarea id="importArea" placeholder='{"version":"1.0","data":{...}}'></textarea>
+          </div>
+          <div class="row2">
+            <button class="btn" id="btnImportCancel">Batal</button>
+            <button class="btn primary" id="btnImportDo">Import</button>
+          </div>
+          <div class="hintLine">Catatan: Import akan menimpa data lama.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <div class="t1" id="toastT1">Sukses</div>
+    <div class="t2" id="toastT2">Data tersimpan.</div>
+  </div>
+
+  <script>
+    /*************************
+     * GazelBooks MVP (Offline)
+     * - Single file HTML+CSS+JS
+     * - LocalStorage persistence
+     * - Modules: Dashboard, Buku Kas, Invoice, Hutang/Piutang, Laporan, Kalkulator
+     *************************/
+
+    const APP_KEY = "gazelbooks_mvp_v1";
+    const VERSION = "1.0";
+
+    const rupiah = (n) => {
+      const x = Number(n || 0);
+      return x.toLocaleString("id-ID", { style:"currency", currency:"IDR", maximumFractionDigits:0 });
+    };
+
+    const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+    const todayISO = () => {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const parseDate = (iso) => {
+      // safe parse yyyy-mm-dd
+      const [y,m,d] = String(iso||"").split("-").map(Number);
+      if(!y || !m || !d) return new Date();
+      return new Date(y, m-1, d, 12, 0, 0);
+    };
+
+    const fmtDate = (iso) => {
+      const d = parseDate(iso);
+      return d.toLocaleDateString("id-ID", { day:"2-digit", month:"short", year:"numeric" });
+    };
+
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+    const showToast = (title, msg) => {
+      const el = document.getElementById("toast");
+      document.getElementById("toastT1").textContent = title;
+      document.getElementById("toastT2").textContent = msg;
+      el.classList.add("open");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => el.classList.remove("open"), 2600);
+    };
+
+    const safeJSON = (s) => {
+      try{ return JSON.parse(s); }catch(e){ return null; }
+    };
+
+    const defaultData = () => {
+      const now = todayISO();
+      const month = new Date().toLocaleDateString("id-ID", { month:"long", year:"numeric" });
+
+      return {
+        version: VERSION,
+        profile: {
+          businessName: "Contoh UMKM",
+          owner: "Owner",
+          currency: "IDR",
+          createdAt: Date.now(),
+        },
+        categories: {
+          in: [
+            "Penjualan",
+            "Jasa",
+            "Modal",
+            "Pendapatan Lain",
+          ],
+          out: [
+            "Bahan Baku",
+            "Operasional",
+            "Gaji",
+            "Transport",
+            "Marketing",
+            "Sewa",
+            "Listrik & Internet",
+            "Pajak",
+            "Lainnya",
+          ]
+        },
+        transactions: [
+          { id: uid(), date: now, type:"in", category:"Penjualan", method:"cash", amount: 1250000, note:"Penjualan hari ini", createdAt: Date.now()-600000 },
+          { id: uid(), date: now, type:"out", category:"Bahan Baku", method:"bank", amount: 420000, note:"Belanja bahan", createdAt: Date.now()-520000 },
+          { id: uid(), date: now, type:"out", category:"Operasional", method:"ewallet", amount: 85000, note:"Internet", createdAt: Date.now()-420000 },
+        ],
+        invoices: [
+          { id: uid(), no:"GB-INV-0001", date: now, due: now, customer:"PT Maju Jaya", contact:"", desc:"Jasa desain konten", total: 1500000, status:"unpaid", createdAt: Date.now()-320000 },
+        ],
+        receivables: [
+          { id: uid(), name:"Piutang dari PT Maju Jaya", counterparty:"PT Maju Jaya", due: now, amount: 1500000, status:"open", note:"Invoice GB-INV-0001", createdAt: Date.now()-310000 },
+        ],
+        payables: [
+          { id: uid(), name:"Hutang ke Supplier A", counterparty:"Supplier A", due: now, amount: 300000, status:"open", note:"Pembelian bahan", createdAt: Date.now()-210000 },
+        ],
+        settings: {
+          monthLabel: month,
+          defaultMethod: "cash",
+          invoicePrefix: "GB-INV-",
+          invoiceNext: 2,
+        }
+      };
+    };
+
+    const load = () => {
+      const raw = localStorage.getItem(APP_KEY);
+      if(!raw) return defaultData();
+      const j = safeJSON(raw);
+      if(!j || !j.version) return defaultData();
+      return j;
+    };
+
+    const save = () => {
+      localStorage.setItem(APP_KEY, JSON.stringify(state, null, 2));
+    };
+
+    let state = load();
+
+    const NAV = [
+      { id:"dashboard", title:"Dashboard", sub:"Ringkasan bisnis", icon:"📊" },
+      { id:"cashbook", title:"Buku Kas", sub:"Pemasukan & pengeluaran", icon:"💸" },
+      { id:"invoices", title:"Invoice", sub:"Tagihan pelanggan", icon:"🧾" },
+      { id:"debts", title:"Hutang/Piutang", sub:"Jatuh tempo & status", icon:"⏳" },
+      { id:"reports", title:"Laporan", sub:"Laba rugi & arus kas", icon:"📄" },
+      { id:"calculator", title:"Kalkulator", sub:"BEP, margin, cicilan", icon:"🧮" },
+      { id:"settings", title:"Pengaturan", sub:"Profil & kategori", icon:"⚙️" },
+    ];
+
+    let page = "dashboard";
+
+    const setPage = (id) => {
+      page = id;
+      render();
+      window.scrollTo({ top:0, behavior:"smooth" });
+    };
+
+    const getMonthRange = () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0);
+      const end = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59);
+      return { start, end };
+    };
+
+    const within = (iso, start, end) => {
+      const d = parseDate(iso);
+      return d >= start && d <= end;
+    };
+
+    const sumTx = (txs, type) => txs.filter(t=>t.type===type).reduce((a,b)=>a+Number(b.amount||0),0);
+
+    const calc = {
+      txAll(){
+        return [...state.transactions].sort((a,b)=> parseDate(b.date) - parseDate(a.date) || (b.createdAt||0)-(a.createdAt||0));
+      },
+      txThisMonth(){
+        const {start,end} = getMonthRange();
+        return calc.txAll().filter(t=>within(t.date,start,end));
+      },
+      invoicesAll(){
+        return [...state.invoices].sort((a,b)=> parseDate(b.date) - parseDate(a.date) || (b.createdAt||0)-(a.createdAt||0));
+      },
+      receivablesOpen(){
+        return state.receivables.filter(r=>r.status==="open");
+      },
+      payablesOpen(){
+        return state.payables.filter(p=>p.status==="open");
+      },
+      kpis(){
+        const txm = calc.txThisMonth();
+        const inc = sumTx(txm,"in");
+        const out = sumTx(txm,"out");
+        const profit = inc - out;
+        const ar = calc.receivablesOpen().reduce((a,b)=>a+Number(b.amount||0),0);
+        const ap = calc.payablesOpen().reduce((a,b)=>a+Number(b.amount||0),0);
+        return { inc, out, profit, ar, ap, txCount: txm.length };
+      },
+      cashBalance(){
+        const inc = sumTx(state.transactions,"in");
+        const out = sumTx(state.transactions,"out");
+        return inc - out;
+      },
+      dueSoon(list, days=7){
+        const now = new Date();
+        const lim = new Date(now.getFullYear(), now.getMonth(), now.getDate()+days, 23,59,59);
+        return list
+          .filter(x=>x.status==="open")
+          .filter(x=> parseDate(x.due) <= lim)
+          .sort((a,b)=> parseDate(a.due)-parseDate(b.due));
+      }
+    };
+
+    const svgSpark = (values=[]) => {
+      // tiny sparkline (inline svg)
+      const w=160, h=44, pad=6;
+      if(!values.length) values=[0];
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const span = Math.max(1, max-min);
+      const pts = values.map((v,i)=>{
+        const x = pad + (i*(w-2*pad))/Math.max(1, values.length-1);
+        const y = pad + (h-2*pad) * (1 - ((v-min)/span));
+        return [x,y];
+      });
+      const d = pts.map((p,i)=> (i?"L":"M") + p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+      return `
+        <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="${d}" stroke="rgba(167,139,250,.9)" stroke-width="2.2" stroke-linecap="round" />
+          <path d="${d} L ${w-pad} ${h-pad} L ${pad} ${h-pad} Z" fill="rgba(124,58,237,.12)" />
+        </svg>
+      `;
+    };
+
+    const icon = (s) => `<span aria-hidden="true">${s}</span>`;
+
+    const el = (id) => document.getElementById(id);
+
+    const openModal = (id) => el(id).classList.add("open");
+    const closeModal = (id) => el(id).classList.remove("open");
+
+    const buildNav = () => {
+      const nav = el("nav");
+      const mNav = el("mNav");
+      nav.innerHTML = "";
+      mNav.innerHTML = "";
+
+      NAV.forEach(item => {
+        const b = document.createElement("button");
+        b.className = page===item.id ? "active" : "";
+        b.innerHTML = `
+          <div class="left">
+            <div class="ico">${item.icon}</div>
+            <div style="min-width:0">
+              <div class="title">${item.title}</div>
+              <span class="sub">${item.sub}</span>
+            </div>
+          </div>
+          <span class="chip">${item.id}</span>
+        `;
+        b.addEventListener("click", ()=>setPage(item.id));
+        nav.appendChild(b);
+
+        const mb = document.createElement("button");
+        mb.className = page===item.id ? "active" : "";
+        mb.innerHTML = `${item.icon} ${item.title}`;
+        mb.addEventListener("click", ()=>setPage(item.id));
+        mNav.appendChild(mb);
+      });
+    };
+
+    const setTop = (title, desc) => {
+      el("pageTitle").textContent = title;
+      el("pageDesc").textContent = desc;
+    };
+
+    /**************
+     * CRUD
+     **************/
+
+    const addTransaction = (tx) => {
+      state.transactions.push({
+        id: uid(),
+        createdAt: Date.now(),
+        ...tx,
+        amount: Number(tx.amount||0),
+      });
+      save();
+      showToast("Sukses", "Transaksi tersimpan ke Buku Kas.");
+      render();
+    };
+
+    const deleteTransaction = (id) => {
+      state.transactions = state.transactions.filter(t=>t.id!==id);
+      save();
+      showToast("Dihapus", "Transaksi berhasil dihapus.");
+      render();
+    };
+
+    const addInvoice = (inv) => {
+      state.invoices.push({
+        id: uid(),
+        createdAt: Date.now(),
+        status: "unpaid",
+        ...inv,
+        total: Number(inv.total||0),
+      });
+
+      // also create receivable
+      state.receivables.push({
+        id: uid(),
+        name: `Piutang dari ${inv.customer}`,
+        counterparty: inv.customer,
+        due: inv.due,
+        amount: Number(inv.total||0),
+        status: "open",
+        note: `Invoice ${inv.no}`,
+        createdAt: Date.now(),
+      });
+
+      // auto increment invoice no (optional)
+      save();
+      showToast("Sukses", "Invoice tersimpan. Piutang otomatis dibuat.");
+      render();
+    };
+
+    const markInvoicePaid = (id) => {
+      const inv = state.invoices.find(i=>i.id===id);
+      if(!inv) return;
+      if(inv.status==="paid") return;
+
+      inv.status = "paid";
+      inv.paidAt = Date.now();
+
+      // close receivable
+      const r = state.receivables.find(x => x.note === `Invoice ${inv.no}` && x.status==="open");
+      if(r) r.status = "closed";
+
+      // add transaction as income
+      state.transactions.push({
+        id: uid(),
+        createdAt: Date.now(),
+        date: todayISO(),
+        type: "in",
+        category: "Jasa",
+        method: "bank",
+        amount: Number(inv.total||0),
+        note: `Pembayaran invoice ${inv.no} (${inv.customer})`,
+      });
+
+      save();
+      showToast("Paid", "Invoice ditandai dibayar + pemasukan masuk ke Buku Kas.");
+      render();
+    };
+
+    const deleteInvoice = (id) => {
+      const inv = state.invoices.find(i=>i.id===id);
+      state.invoices = state.invoices.filter(i=>i.id!==id);
+      if(inv){
+        state.receivables = state.receivables.filter(r=>r.note !== `Invoice ${inv.no}`);
+      }
+      save();
+      showToast("Dihapus", "Invoice & piutang terkait dihapus.");
+      render();
+    };
+
+    const addDebtItem = (kind, item) => {
+      const arr = kind === "receivable" ? state.receivables : state.payables;
+      arr.push({
+        id: uid(),
+        createdAt: Date.now(),
+        status: "open",
+        ...item,
+        amount: Number(item.amount||0),
+      });
+      save();
+      showToast("Sukses", kind==="receivable" ? "Piutang ditambahkan." : "Hutang ditambahkan.");
+      render();
+    };
+
+    const closeDebtItem = (kind, id) => {
+      const arr = kind === "receivable" ? state.receivables : state.payables;
+      const x = arr.find(i=>i.id===id);
+      if(!x) return;
+      x.status = "closed";
+      x.closedAt = Date.now();
+
+      // Optional: create tx
+      if(kind === "receivable"){
+        state.transactions.push({
+          id: uid(),
+          createdAt: Date.now(),
+          date: todayISO(),
+          type: "in",
+          category: "Pendapatan Lain",
+          method: "bank",
+          amount: Number(x.amount||0),
+          note: `Pelunasan piutang (${x.counterparty})`,
+        });
+      }else{
+        state.transactions.push({
+          id: uid(),
+          createdAt: Date.now(),
+          date: todayISO(),
+          type: "out",
+          category: "Operasional",
+          method: "bank",
+          amount: Number(x.amount||0),
+          note: `Pembayaran hutang (${x.counterparty})`,
+        });
+      }
+
+      save();
+      showToast("Selesai", kind==="receivable" ? "Piutang ditutup + pemasukan dicatat." : "Hutang ditutup + pengeluaran dicatat.");
+      render();
+    };
+
+    const deleteDebtItem = (kind, id) => {
+      const arr = kind === "receivable" ? state.receivables : state.payables;
+      if(kind === "receivable") state.receivables = arr.filter(i=>i.id!==id);
+      else state.payables = arr.filter(i=>i.id!==id);
+      save();
+      showToast("Dihapus", kind==="receivable" ? "Piutang dihapus." : "Hutang dihapus.");
+      render();
+    };
+
+    /**************
+     * RENDER PAGES
+     **************/
+
+    const pageDashboard = () => {
+      setTop("Dashboard", "Ringkasan kas, profit, hutang/piutang, dan performa bisnis.");
+
+      const k = calc.kpis();
+      const bal = calc.cashBalance();
+
+      const txm = calc.txThisMonth();
+      const days = 14;
+      const series = [];
+      for(let i=days-1;i>=0;i--){
+        const d = new Date();
+        d.setDate(d.getDate()-i);
+        const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        const list = state.transactions.filter(t=>t.date===iso);
+        const inc = sumTx(list,"in");
+        const out = sumTx(list,"out");
+        series.push(inc - out);
+      }
+
+      const dueAR = calc.dueSoon(state.receivables, 7);
+      const dueAP = calc.dueSoon(state.payables, 7);
+
+      return `
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Ringkasan Bulan Ini</h3>
+              <div class="muted">${state.settings.monthLabel} • ${k.txCount} transaksi</div>
+            </div>
+            <span class="chip">saldo: ${rupiah(bal)}</span>
+          </div>
+          <div class="bd">
+            <div class="grid3">
+              <div class="kpi good">
+                <div class="label">Pemasukan</div>
+                <div class="val">${rupiah(k.inc)}</div>
+                <div class="hint">Total kas masuk bulan ini</div>
+              </div>
+              <div class="kpi bad">
+                <div class="label">Pengeluaran</div>
+                <div class="val">${rupiah(k.out)}</div>
+                <div class="hint">Total kas keluar bulan ini</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Profit Estimasi</div>
+                <div class="val">${rupiah(k.profit)}</div>
+                <div class="hint">(pemasukan - pengeluaran)</div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid2">
+              <div class="kpi">
+                <div class="label">Piutang (Open)</div>
+                <div class="val">${rupiah(k.ar)}</div>
+                <div class="hint">Tagihan pelanggan yang belum dibayar</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Hutang (Open)</div>
+                <div class="val">${rupiah(k.ap)}</div>
+                <div class="hint">Kewajiban ke supplier / pihak lain</div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="kpi">
+              <div class="label">Tren 14 Hari (Net Cashflow)</div>
+              <div style="margin-top:10px">${svgSpark(series)}</div>
+              <div class="hint">Grafik kecil untuk melihat arah kas.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Jatuh Tempo 7 Hari</h3>
+              <div class="muted">Pantau piutang & hutang yang dekat deadline</div>
+            </div>
+            <button class="btn" onclick="setPage('debts')">Buka Hutang/Piutang</button>
+          </div>
+          <div class="bd">
+            <div class="grid2">
+              <div class="kpi">
+                <div class="label">Piutang segera jatuh tempo</div>
+                <div class="val">${dueAR.length}</div>
+                <div class="hint">${dueAR.length? "Ada yang perlu ditagih." : "Aman. Tidak ada."}</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Hutang segera jatuh tempo</div>
+                <div class="val">${dueAP.length}</div>
+                <div class="hint">${dueAP.length? "Perlu disiapkan dana." : "Aman. Tidak ada."}</div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Jenis</th>
+                    <th>Nama</th>
+                    <th>Pihak</th>
+                    <th>Jatuh Tempo</th>
+                    <th>Jumlah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${[...dueAR.map(x=>({kind:"Piutang",...x})), ...dueAP.map(x=>({kind:"Hutang",...x}))]
+                    .sort((a,b)=> parseDate(a.due)-parseDate(b.due))
+                    .slice(0,8)
+                    .map(x=>`
+                      <tr>
+                        <td><span class="badge ${x.kind==='Piutang'?'in':'out'}">${x.kind}</span></td>
+                        <td>${x.name}</td>
+                        <td>${x.counterparty}</td>
+                        <td class="mono">${fmtDate(x.due)}</td>
+                        <td class="mono">${rupiah(x.amount)}</td>
+                      </tr>
+                    `).join("")
+                    || `<tr><td colspan="5" style="color:var(--muted)">Tidak ada data jatuh tempo dekat.</td></tr>`
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const pageCashbook = () => {
+      setTop("Buku Kas", "Semua pemasukan & pengeluaran. Bisa filter dan export.");
+
+      const tx = calc.txAll();
+
+      return `
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Transaksi</h3>
+              <div class="muted">${tx.length} data • tersimpan offline</div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+              <button class="btn" onclick="openQuickAdd()">➕ Tambah</button>
+              <button class="btn" onclick="exportCSV()">📄 Export CSV</button>
+              <button class="btn" onclick="window.print()">🖨️ Print</button>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="row3">
+              <div class="field">
+                <label>Filter Jenis</label>
+                <select id="fType">
+                  <option value="all">Semua</option>
+                  <option value="in">Pemasukan</option>
+                  <option value="out">Pengeluaran</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Filter Kategori</label>
+                <select id="fCat">
+                  <option value="all">Semua</option>
+                  ${[...new Set([...state.categories.in, ...state.categories.out])].map(c=>`<option value="${c}">${c}</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label>Cari</label>
+                <input id="fSearch" placeholder="note / kategori / metode" />
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Jenis</th>
+                    <th>Kategori</th>
+                    <th>Metode</th>
+                    <th>Keterangan</th>
+                    <th>Jumlah</th>
+                    <th style="text-align:right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="txBody">
+                  ${tx.map(t=>rowTx(t)).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Insight Cepat</h3>
+              <div class="muted">Analisis sederhana untuk UMKM</div>
+            </div>
+            <span class="chip">saldo total: ${rupiah(calc.cashBalance())}</span>
+          </div>
+          <div class="bd">
+            ${cashbookInsights()}
+          </div>
+        </div>
+      `;
+    };
+
+    const rowTx = (t) => {
+      const b = t.type === "in" ? "in" : "out";
+      const label = t.type === "in" ? "Pemasukan" : "Pengeluaran";
+      const methodLabel = t.method === "cash" ? "Cash" : t.method === "bank" ? "Bank" : "E-Wallet";
+      return `
+        <tr data-id="${t.id}">
+          <td class="mono">${fmtDate(t.date)}</td>
+          <td><span class="badge ${b}">${label}</span></td>
+          <td>${t.category || "-"}</td>
+          <td>${methodLabel}</td>
+          <td>${escapeHTML(t.note || "")}</td>
+          <td class="mono">${rupiah(t.amount)}</td>
+          <td>
+            <div class="tdActions">
+              <button class="iconBtn danger" title="Hapus" onclick="deleteTransaction('${t.id}')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    };
+
+    const cashbookInsights = () => {
+      const tx = calc.txThisMonth();
+      const inc = sumTx(tx,"in");
+      const out = sumTx(tx,"out");
+
+      const byCat = {};
+      tx.filter(t=>t.type==="out").forEach(t=>{
+        byCat[t.category] = (byCat[t.category]||0) + Number(t.amount||0);
+      });
+
+      const top = Object.entries(byCat)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,5);
+
+      const burn = out / Math.max(1, new Date().getDate());
+      const runway = (inc - out) > 0 ? Infinity : calc.cashBalance() / Math.max(1, burn);
+
+      return `
+        <div class="grid2">
+          <div class="kpi">
+            <div class="label">Rata-rata pengeluaran / hari</div>
+            <div class="val">${rupiah(burn)}</div>
+            <div class="hint">Perkiraan berdasarkan bulan berjalan</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Top 5 kategori pengeluaran</div>
+            <div class="val">${top.length ? top[0][0] : "-"}</div>
+            <div class="hint">${top.length ? `${rupiah(top[0][1])} (terbesar)` : "Belum ada data."}</div>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Kategori</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${top.map(([k,v])=>`
+                <tr>
+                  <td>${k}</td>
+                  <td class="mono">${rupiah(v)}</td>
+                </tr>
+              `).join("") || `<tr><td colspan="2" style="color:var(--muted)">Belum ada pengeluaran bulan ini.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const pageInvoices = () => {
+      setTop("Invoice", "Buat tagihan pelanggan. Tandai paid untuk otomatis masuk Buku Kas.");
+
+      const inv = calc.invoicesAll();
+      const unpaid = inv.filter(i=>i.status!=="paid");
+      const paid = inv.filter(i=>i.status==="paid");
+
+      return `
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Daftar Invoice</h3>
+              <div class="muted">${inv.length} data • ${unpaid.length} belum dibayar</div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+              <button class="btn" onclick="openInvoice()">➕ Buat Invoice</button>
+              <button class="btn" onclick="exportInvoicesCSV()">📄 Export CSV</button>
+              <button class="btn" onclick="window.print()">🖨️ Print</button>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Tanggal</th>
+                    <th>Customer</th>
+                    <th>Deskripsi</th>
+                    <th>Due</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th style="text-align:right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${inv.map(i=>rowInv(i)).join("") || `<tr><td colspan="8" style="color:var(--muted)">Belum ada invoice.</td></tr>`}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Ringkasan Invoice</h3>
+              <div class="muted">Monitoring cashflow dari tagihan</div>
+            </div>
+            <span class="chip">unpaid: ${rupiah(unpaid.reduce((a,b)=>a+Number(b.total||0),0))}</span>
+          </div>
+          <div class="bd">
+            <div class="grid3">
+              <div class="kpi">
+                <div class="label">Total Invoice</div>
+                <div class="val">${inv.length}</div>
+                <div class="hint">Semua invoice</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Unpaid</div>
+                <div class="val">${unpaid.length}</div>
+                <div class="hint">Belum dibayar</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Paid</div>
+                <div class="val">${paid.length}</div>
+                <div class="hint">Sudah dibayar</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const rowInv = (i) => {
+      const statusBadge = i.status === "paid"
+        ? `<span class="badge in">Paid</span>`
+        : `<span class="badge out">Unpaid</span>`;
+
+      return `
+        <tr>
+          <td class="mono">${escapeHTML(i.no)}</td>
+          <td class="mono">${fmtDate(i.date)}</td>
+          <td>${escapeHTML(i.customer)}</td>
+          <td>${escapeHTML(i.desc)}</td>
+          <td class="mono">${fmtDate(i.due)}</td>
+          <td class="mono">${rupiah(i.total)}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <div class="tdActions">
+              ${i.status !== "paid" ? `<button class="iconBtn" title="Mark Paid" onclick="markInvoicePaid('${i.id}')">✅</button>` : ``}
+              <button class="iconBtn" title="Print" onclick="printInvoice('${i.id}')">🖨️</button>
+              <button class="iconBtn danger" title="Hapus" onclick="deleteInvoice('${i.id}')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    };
+
+    const pageDebts = () => {
+      setTop("Hutang/Piutang", "Pantau jatuh tempo. Tutup hutang/piutang agar otomatis tercatat di Buku Kas.");
+
+      const arOpen = calc.receivablesOpen();
+      const apOpen = calc.payablesOpen();
+
+      const sumAR = arOpen.reduce((a,b)=>a+Number(b.amount||0),0);
+      const sumAP = apOpen.reduce((a,b)=>a+Number(b.amount||0),0);
+
+      return `
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Ringkasan</h3>
+              <div class="muted">Open items yang belum selesai</div>
+            </div>
+            <span class="chip">net: ${rupiah(sumAR - sumAP)}</span>
+          </div>
+          <div class="bd">
+            <div class="grid2">
+              <div class="kpi">
+                <div class="label">Piutang (Open)</div>
+                <div class="val">${rupiah(sumAR)}</div>
+                <div class="hint">${arOpen.length} item</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Hutang (Open)</div>
+                <div class="val">${rupiah(sumAP)}</div>
+                <div class="hint">${apOpen.length} item</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Piutang</h3>
+              <div class="muted">Tagihan masuk yang belum dibayar</div>
+            </div>
+            <button class="btn" onclick="openAddDebt('receivable')">➕ Tambah Piutang</button>
+          </div>
+          <div class="bd">
+            ${tableDebt("receivable")}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Hutang</h3>
+              <div class="muted">Kewajiban pembayaran</div>
+            </div>
+            <button class="btn" onclick="openAddDebt('payable')">➕ Tambah Hutang</button>
+          </div>
+          <div class="bd">
+            ${tableDebt("payable")}
+          </div>
+        </div>
+      `;
+    };
+
+    const tableDebt = (kind) => {
+      const isAR = kind === "receivable";
+      const arr = isAR ? [...state.receivables] : [...state.payables];
+      arr.sort((a,b)=> parseDate(a.due)-parseDate(b.due));
+
+      return `
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Pihak</th>
+                <th>Jatuh Tempo</th>
+                <th>Jumlah</th>
+                <th>Status</th>
+                <th style="text-align:right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${arr.map(x=>{
+                const badge = x.status === "closed" ? `<span class="badge in">Closed</span>` : `<span class="badge out">Open</span>`;
+                return `
+                  <tr>
+                    <td>${escapeHTML(x.name)}</td>
+                    <td>${escapeHTML(x.counterparty)}</td>
+                    <td class="mono">${fmtDate(x.due)}</td>
+                    <td class="mono">${rupiah(x.amount)}</td>
+                    <td>${badge}</td>
+                    <td>
+                      <div class="tdActions">
+                        ${x.status === "open" ? `<button class="iconBtn" title="Tutup" onclick="closeDebtItem('${kind}','${x.id}')">✅</button>` : ``}
+                        <button class="iconBtn danger" title="Hapus" onclick="deleteDebtItem('${kind}','${x.id}')">🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join("") || `<tr><td colspan="6" style="color:var(--muted)">Belum ada data.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    const pageReports = () => {
+      setTop("Laporan", "Laba rugi sederhana, arus kas, dan rekap transaksi.");
+
+      const txm = calc.txThisMonth();
+      const inc = sumTx(txm,"in");
+      const out = sumTx(txm,"out");
+      const profit = inc - out;
+
+      const byIn = {};
+      const byOut = {};
+
+      txm.filter(t=>t.type==="in").forEach(t=> byIn[t.category] = (byIn[t.category]||0) + Number(t.amount||0));
+      txm.filter(t=>t.type==="out").forEach(t=> byOut[t.category] = (byOut[t.category]||0) + Number(t.amount||0));
+
+      const inRows = Object.entries(byIn).sort((a,b)=>b[1]-a[1]);
+      const outRows = Object.entries(byOut).sort((a,b)=>b[1]-a[1]);
+
+      return `
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Laba Rugi (Sederhana)</h3>
+              <div class="muted">${state.settings.monthLabel}</div>
+            </div>
+            <button class="btn" onclick="window.print()">🖨️ Print</button>
+          </div>
+          <div class="bd">
+            <div class="grid3">
+              <div class="kpi good">
+                <div class="label">Pendapatan</div>
+                <div class="val">${rupiah(inc)}</div>
+                <div class="hint">Total pemasukan bulan ini</div>
+              </div>
+              <div class="kpi bad">
+                <div class="label">Beban</div>
+                <div class="val">${rupiah(out)}</div>
+                <div class="hint">Total pengeluaran bulan ini</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Laba Bersih</div>
+                <div class="val">${rupiah(profit)}</div>
+                <div class="hint">Pendapatan - Beban</div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="grid2">
+              <div>
+                <div style="font-weight:800; margin-bottom:8px;">Rincian Pendapatan</div>
+                <div class="tableWrap">
+                  <table>
+                    <thead><tr><th>Kategori</th><th>Total</th></tr></thead>
+                    <tbody>
+                      ${inRows.map(([k,v])=>`<tr><td>${k}</td><td class="mono">${rupiah(v)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:var(--muted)">Belum ada pemasukan.</td></tr>`}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <div style="font-weight:800; margin-bottom:8px;">Rincian Beban</div>
+                <div class="tableWrap">
+                  <table>
+                    <thead><tr><th>Kategori</th><th>Total</th></tr></thead>
+                    <tbody>
+                      ${outRows.map(([k,v])=>`<tr><td>${k}</td><td class="mono">${rupiah(v)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:var(--muted)">Belum ada pengeluaran.</td></tr>`}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="kpi">
+              <div class="label">Catatan</div>
+              <div class="hint">Laporan ini cocok untuk UMKM: rapi, cepat, dan bisa dipakai untuk kebutuhan pinjaman/partner.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Arus Kas</h3>
+              <div class="muted">Ringkasan kas masuk/keluar</div>
+            </div>
+            <span class="chip">saldo: ${rupiah(calc.cashBalance())}</span>
+          </div>
+          <div class="bd">
+            <div class="grid2">
+              <div class="kpi">
+                <div class="label">Kas Masuk (bulan ini)</div>
+                <div class="val">${rupiah(inc)}</div>
+                <div class="hint">Berdasarkan Buku Kas</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Kas Keluar (bulan ini)</div>
+                <div class="val">${rupiah(out)}</div>
+                <div class="hint">Berdasarkan Buku Kas</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const pageCalculator = () => {
+      setTop("Kalkulator Keuangan", "BEP, margin, proyeksi, dan simulasi cicilan UMKM.");
+
+      return `
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Margin & Harga Jual</h3>
+              <div class="muted">Hitung cepat harga jual yang sehat</div>
+            </div>
+            <span class="chip">UMKM-ready</span>
+          </div>
+          <div class="bd">
+            <div class="form" oninput="calcMargin()">
+              <div class="row3">
+                <div class="field">
+                  <label>Modal / HPP (Rp)</label>
+                  <input type="number" id="cHpp" min="0" step="100" value="50000" />
+                </div>
+                <div class="field">
+                  <label>Target Margin (%)</label>
+                  <input type="number" id="cMargin" min="0" step="1" value="40" />
+                </div>
+                <div class="field">
+                  <label>Harga Jual (Rp)</label>
+                  <input type="number" id="cPrice" min="0" step="100" value="0" />
+                </div>
+              </div>
+
+              <div class="grid3">
+                <div class="kpi">
+                  <div class="label">Harga Jual Rekomendasi</div>
+                  <div class="val" id="oPrice">-</div>
+                  <div class="hint">Berdasarkan margin</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Profit / unit</div>
+                  <div class="val" id="oProfit">-</div>
+                  <div class="hint">Harga - HPP</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Margin Real (%)</div>
+                  <div class="val" id="oReal">-</div>
+                  <div class="hint">Jika pakai harga jual input</div>
+                </div>
+              </div>
+
+              <div class="hintLine">Kalau harga jual kamu sudah ada, isi kolom Harga Jual untuk lihat margin real.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Break Even Point (BEP)</h3>
+              <div class="muted">Berapa unit harus terjual agar balik modal</div>
+            </div>
+            <span class="chip">simple</span>
+          </div>
+          <div class="bd">
+            <div class="form" oninput="calcBEP()">
+              <div class="row3">
+                <div class="field">
+                  <label>Biaya Tetap / bulan (Rp)</label>
+                  <input type="number" id="bFixed" min="0" step="100" value="2000000" />
+                </div>
+                <div class="field">
+                  <label>Harga Jual / unit (Rp)</label>
+                  <input type="number" id="bPrice" min="0" step="100" value="90000" />
+                </div>
+                <div class="field">
+                  <label>HPP / unit (Rp)</label>
+                  <input type="number" id="bHpp" min="0" step="100" value="50000" />
+                </div>
+              </div>
+
+              <div class="grid3">
+                <div class="kpi">
+                  <div class="label">Contribution / unit</div>
+                  <div class="val" id="bContrib">-</div>
+                  <div class="hint">Harga - HPP</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">BEP (unit)</div>
+                  <div class="val" id="bUnit">-</div>
+                  <div class="hint">Unit minimal terjual</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">BEP (Rp omzet)</div>
+                  <div class="val" id="bSales">-</div>
+                  <div class="hint">Omzet minimal</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Simulasi Cicilan</h3>
+              <div class="muted">Pinjaman UMKM: hitung angsuran flat sederhana</div>
+            </div>
+            <span class="chip">estimasi</span>
+          </div>
+          <div class="bd">
+            <div class="form" oninput="calcLoan()">
+              <div class="row3">
+                <div class="field">
+                  <label>Pinjaman (Rp)</label>
+                  <input type="number" id="lPrincipal" min="0" step="100000" value="10000000" />
+                </div>
+                <div class="field">
+                  <label>Bunga / tahun (%)</label>
+                  <input type="number" id="lRate" min="0" step="0.1" value="12" />
+                </div>
+                <div class="field">
+                  <label>Tenor (bulan)</label>
+                  <input type="number" id="lTenor" min="1" step="1" value="12" />
+                </div>
+              </div>
+
+              <div class="grid3">
+                <div class="kpi">
+                  <div class="label">Angsuran / bulan</div>
+                  <div class="val" id="lMonthly">-</div>
+                  <div class="hint">Metode flat (estimasi)</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Total dibayar</div>
+                  <div class="val" id="lTotal">-</div>
+                  <div class="hint">Pokok + bunga</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Total bunga</div>
+                  <div class="val" id="lInterest">-</div>
+                  <div class="hint">Estimasi</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const pageSettings = () => {
+      setTop("Pengaturan", "Profil bisnis, kategori transaksi, dan generator nomor invoice.");
+
+      const allCats = [...new Set([...state.categories.in, ...state.categories.out])];
+
+      return `
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Profil</h3>
+              <div class="muted">Informasi bisnis untuk invoice & laporan</div>
+            </div>
+            <span class="chip">LocalStorage</span>
+          </div>
+          <div class="bd">
+            <div class="form">
+              <div class="row2">
+                <div class="field">
+                  <label>Nama Bisnis</label>
+                  <input id="sBiz" value="${escapeAttr(state.profile.businessName)}" />
+                </div>
+                <div class="field">
+                  <label>Nama Owner</label>
+                  <input id="sOwner" value="${escapeAttr(state.profile.owner)}" />
+                </div>
+              </div>
+
+              <div class="row2">
+                <div class="field">
+                  <label>Label Bulan (untuk laporan)</label>
+                  <input id="sMonth" value="${escapeAttr(state.settings.monthLabel)}" />
+                </div>
+                <div class="field">
+                  <label>Prefix Invoice</label>
+                  <input id="sInvPrefix" value="${escapeAttr(state.settings.invoicePrefix)}" />
+                </div>
+              </div>
+
+              <div class="row2">
+                <button class="btn" onclick="saveSettings()">💾 Simpan</button>
+                <button class="btn" onclick="generateInvoiceNo()">✨ Generate No Invoice</button>
+              </div>
+
+              <div class="hintLine">Nomor invoice otomatis akan naik setiap kali kamu membuat invoice.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Kategori</h3>
+              <div class="muted">Tambah kategori pemasukan/pengeluaran</div>
+            </div>
+            <span class="chip">${allCats.length} kategori</span>
+          </div>
+          <div class="bd">
+            <div class="grid2">
+              <div>
+                <div style="font-weight:800; margin-bottom:8px;">Kategori Pemasukan</div>
+                ${categoryEditor("in")}
+              </div>
+              <div>
+                <div style="font-weight:800; margin-bottom:8px;">Kategori Pengeluaran</div>
+                ${categoryEditor("out")}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div>
+              <h3>Keamanan Data</h3>
+              <div class="muted">Versi MVP ini tidak mengirim data ke server</div>
+            </div>
+            <span class="chip">privacy</span>
+          </div>
+          <div class="bd">
+            <div class="kpi">
+              <div class="label">Catatan</div>
+              <div class="hint">
+                Data hanya tersimpan di browser perangkat ini. Untuk versi SaaS, nanti tinggal ganti storage ke database + login.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const categoryEditor = (type) => {
+      const list = state.categories[type];
+      return `
+        <div class="tableWrap">
+          <table style="min-width:0">
+            <thead>
+              <tr><th>Nama</th><th style="text-align:right">Aksi</th></tr>
+            </thead>
+            <tbody>
+              ${list.map((c,idx)=>`
+                <tr>
+                  <td>${escapeHTML(c)}</td>
+                  <td>
+                    <div class="tdActions">
+                      <button class="iconBtn danger" onclick="deleteCategory('${type}', ${idx})">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+              <tr>
+                <td>
+                  <input id="newCat_${type}" placeholder="Tambah kategori..." style="width:100%; border:1px solid var(--line); background:rgba(255,255,255,.02); color:var(--text); padding:10px 12px; border-radius:14px;" />
+                </td>
+                <td>
+                  <div class="tdActions">
+                    <button class="iconBtn" onclick="addCategory('${type}')">➕</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+    };
+
+    /**************
+     * RENDER ROUTER
+     **************/
+
+    const render = () => {
+      buildNav();
+      const root = el("content");
+
+      let html = "";
+      if(page === "dashboard") html = pageDashboard();
+      else if(page === "cashbook") html = pageCashbook();
+      else if(page === "invoices") html = pageInvoices();
+      else if(page === "debts") html = pageDebts();
+      else if(page === "reports") html = pageReports();
+      else if(page === "calculator") html = pageCalculator();
+      else if(page === "settings") html = pageSettings();
+
+      root.innerHTML = html;
+
+      // post hooks
+      if(page === "cashbook") initCashbookFilters();
+      if(page === "calculator"){
+        calcMargin();
+        calcBEP();
+        calcLoan();
+      }
+
+      hydrateQuickAddCategories();
+    };
+
+    /**************
+     * FILTERS
+     **************/
+
+    const initCashbookFilters = () => {
+      const fType = el("fType");
+      const fCat = el("fCat");
+      const fSearch = el("fSearch");
+      const body = el("txBody");
+
+      const apply = () => {
+        const type = fType.value;
+        const cat = fCat.value;
+        const q = (fSearch.value||"").trim().toLowerCase();
+
+        const rows = calc.txAll().filter(t=>{
+          if(type !== "all" && t.type !== type) return false;
+          if(cat !== "all" && t.category !== cat) return false;
+          if(q){
+            const blob = `${t.note||""} ${t.category||""} ${t.method||""}`.toLowerCase();
+            if(!blob.includes(q)) return false;
+          }
+          return true;
+        });
+
+        body.innerHTML = rows.map(t=>rowTx(t)).join("") || `<tr><td colspan="7" style="color:var(--muted)">Tidak ada data sesuai filter.</td></tr>`;
+      };
+
+      [fType,fCat,fSearch].forEach(x=> x.addEventListener("input", apply));
+    };
+
+    /**************
+     * MODALS
+     **************/
+
+    const openQuickAdd = () => {
+      el("txDate").value = todayISO();
+      el("txType").value = "in";
+      el("txAmount").value = "";
+      el("txNote").value = "";
+      el("txMethod").value = state.settings.defaultMethod || "cash";
+      hydrateQuickAddCategories();
+      openModal("modalTx");
+      setTimeout(()=> el("txAmount").focus(), 80);
+    };
+
+    const hydrateQuickAddCategories = () => {
+      const sel = el("txCategory");
+      if(!sel) return;
+      const type = el("txType")?.value || "in";
+      const list = type === "in" ? state.categories.in : state.categories.out;
+      sel.innerHTML = list.map(c=>`<option value="${escapeAttr(c)}">${escapeHTML(c)}</option>`).join("");
+    };
+
+    const openInvoice = () => {
+      const now = todayISO();
+      el("invDate").value = now;
+      el("invDue").value = now;
+      el("invNo").value = generateInvoiceNo(true);
+      el("invCustomer").value = "";
+      el("invContact").value = "";
+      el("invDesc").value = "";
+      el("invTotal").value = "";
+      openModal("modalInv");
+      setTimeout(()=> el("invCustomer").focus(), 80);
+    };
+
+    /**************
+     * EXPORT / IMPORT
+     **************/
+
+    const downloadText = (filename, text) => {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    const exportJSON = () => {
+      const payload = { version: VERSION, exportedAt: Date.now(), data: state };
+      downloadText(`gazelbooks_export_${Date.now()}.json`, JSON.stringify(payload, null, 2));
+      showToast("Export", "File JSON berhasil diunduh.");
+    };
+
+    const openImport = () => {
+      el("importArea").value = "";
+      openModal("modalImport");
+    };
+
+    const doImport = () => {
+      const raw = el("importArea").value.trim();
+      const j = safeJSON(raw);
+      if(!j || !j.data){
+        showToast("Gagal", "JSON tidak valid.");
+        return;
+      }
+      state = j.data;
+      save();
+      closeModal("modalImport");
+      showToast("Sukses", "Data berhasil diimport.");
+      render();
+    };
+
+    const exportCSV = () => {
+      const tx = calc.txAll();
+      const header = ["date","type","category","method","note","amount"].join(",");
+      const rows = tx.map(t=>[
+        t.date,
+        t.type,
+        csvSafe(t.category),
+        t.method,
+        csvSafe(t.note||""),
+        Number(t.amount||0)
+      ].join(","));
+      downloadText(`gazelbooks_cashbook_${Date.now()}.csv`, [header, ...rows].join("\n"));
+      showToast("Export", "CSV Buku Kas berhasil diunduh.");
+    };
+
+    const exportInvoicesCSV = () => {
+      const inv = calc.invoicesAll();
+      const header = ["no","date","due","customer","desc","total","status"].join(",");
+      const rows = inv.map(i=>[
+        i.no,
+        i.date,
+        i.due,
+        csvSafe(i.customer),
+        csvSafe(i.desc),
+        Number(i.total||0),
+        i.status
+      ].join(","));
+      downloadText(`gazelbooks_invoices_${Date.now()}.csv`, [header, ...rows].join("\n"));
+      showToast("Export", "CSV Invoice berhasil diunduh.");
+    };
+
+    /**************
+     * SETTINGS
+     **************/
+
+    const saveSettings = () => {
+      state.profile.businessName = el("sBiz").value.trim() || "UMKM";
+      state.profile.owner = el("sOwner").value.trim() || "Owner";
+      state.settings.monthLabel = el("sMonth").value.trim() || state.settings.monthLabel;
+      state.settings.invoicePrefix = el("sInvPrefix").value.trim() || "GB-INV-";
+      save();
+      showToast("Sukses", "Pengaturan tersimpan.");
+      render();
+    };
+
+    const generateInvoiceNo = (silent=false) => {
+      const next = Number(state.settings.invoiceNext || 1);
+      const prefix = state.settings.invoicePrefix || "GB-INV-";
+      const no = prefix + String(next).padStart(4,"0");
+      if(!silent){
+        showToast("Generated", `No invoice: ${no}`);
+      }
+      return no;
+    };
+
+    const bumpInvoiceNo = () => {
+      state.settings.invoiceNext = Number(state.settings.invoiceNext || 1) + 1;
+    };
+
+    const addCategory = (type) => {
+      const inp = el(`newCat_${type}`);
+      const v = (inp.value||"").trim();
+      if(!v) return;
+      if(state.categories[type].includes(v)){
+        showToast("Info", "Kategori sudah ada.");
+        return;
+      }
+      state.categories[type].push(v);
+      inp.value = "";
+      save();
+      showToast("Sukses", "Kategori ditambahkan.");
+      render();
+    };
+
+    const deleteCategory = (type, idx) => {
+      const c = state.categories[type][idx];
+      if(!c) return;
+      state.categories[type].splice(idx,1);
+      save();
+      showToast("Dihapus", "Kategori dihapus.");
+      render();
+    };
+
+    /**************
+     * PRINT INVOICE
+     **************/
+
+    const printInvoice = (id) => {
+      const inv = state.invoices.find(i=>i.id===id);
+      if(!inv) return;
+
+      const html = `
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width,initial-scale=1" />
+            <title>Invoice ${escapeHTML(inv.no)}</title>
+            <style>
+              body{ font-family: Arial, sans-serif; padding:24px; }
+              .box{ border:1px solid #ddd; padding:18px; border-radius:14px; }
+              .row{ display:flex; justify-content:space-between; gap:16px; }
+              h1{ margin:0; font-size:22px; }
+              .muted{ color:#666; font-size:12px; }
+              table{ width:100%; border-collapse:collapse; margin-top:16px; }
+              th,td{ border-bottom:1px solid #eee; padding:10px; text-align:left; }
+              th{ background:#fafafa; }
+              .right{ text-align:right; }
+              .total{ font-size:18px; font-weight:800; }
+            </style>
+          </head>
+          <body>
+            <div class="box">
+              <div class="row">
+                <div>
+                  <h1>INVOICE</h1>
+                  <div class="muted">${escapeHTML(state.profile.businessName)} • ${escapeHTML(state.profile.owner)}</div>
+                </div>
+                <div style="text-align:right">
+                  <div><b>No:</b> ${escapeHTML(inv.no)}</div>
+                  <div><b>Tanggal:</b> ${fmtDate(inv.date)}</div>
+                  <div><b>Due:</b> ${fmtDate(inv.due)}</div>
+                </div>
+              </div>
+
+              <div style="height:12px"></div>
+
+              <div>
+                <div class="muted">Ditagihkan kepada</div>
+                <div style="font-size:14px; font-weight:800;">${escapeHTML(inv.customer)}</div>
+                <div class="muted">${escapeHTML(inv.contact||"")}</div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Deskripsi</th>
+                    <th class="right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${escapeHTML(inv.desc)}</td>
+                    <td class="right">${rupiah(inv.total)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+                <div class="total">TOTAL: ${rupiah(inv.total)}</div>
+              </div>
+
+              <div style="margin-top:18px" class="muted">
+                Status: <b>${inv.status.toUpperCase()}</b>
+              </div>
+            </div>
+            <script>
+              window.onload = () => window.print();
+            </script>
+          </body>
+        </html>
+      `;
+
+      const w = window.open("", "_blank");
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    };
+
+    /**************
+     * ADD DEBT QUICK FORM
+     **************/
+
+    const openAddDebt = (kind) => {
+      const isAR = kind === "receivable";
+
+      const title = isAR ? "Tambah Piutang" : "Tambah Hutang";
+      const subtitle = isAR ? "Catat tagihan masuk yang belum dibayar" : "Catat kewajiban pembayaran";
+
+      const html = `
+        <div class="modalOverlay open" id="modalDebt">
+          <div class="modal">
+            <div class="mh">
+              <div>
+                <h3>${title}</h3>
+                <p>${subtitle}</p>
+              </div>
+              <button class="iconBtn" onclick="closeDebtModal()">✕</button>
+            </div>
+            <div class="mb">
+              <form class="form" id="debtForm">
+                <div class="row2">
+                  <div class="field">
+                    <label>Nama</label>
+                    <input id="dName" required placeholder="contoh: Hutang ke Supplier" />
+                  </div>
+                  <div class="field">
+                    <label>Pihak</label>
+                    <input id="dParty" required placeholder="contoh: Supplier A" />
+                  </div>
+                </div>
+
+                <div class="row3">
+                  <div class="field">
+                    <label>Jatuh Tempo</label>
+                    <input type="date" id="dDue" required value="${todayISO()}" />
+                  </div>
+                  <div class="field">
+                    <label>Jumlah (Rp)</label>
+                    <input type="number" id="dAmt" min="0" step="100" required placeholder="contoh: 300000" />
+                  </div>
+                  <div class="field">
+                    <label>Catatan (opsional)</label>
+                    <input id="dNote" placeholder="contoh: pembelian bahan" />
+                  </div>
+                </div>
+
+                <div class="row2">
+                  <button type="button" class="btn" onclick="closeDebtModal()">Batal</button>
+                  <button type="submit" class="btn primary">Simpan</button>
+                </div>
+              </form>
+              <div class="hintLine">Saat ditutup, sistem otomatis buat transaksi kas masuk/keluar.</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const wrap = document.createElement("div");
+      wrap.innerHTML = html;
+      document.body.appendChild(wrap.firstElementChild);
+
+      setTimeout(()=> document.getElementById("dName")?.focus(), 60);
+
+      const form = document.getElementById("debtForm");
+      form.addEventListener("submit", (e)=>{
+        e.preventDefault();
+        const item = {
+          name: document.getElementById("dName").value.trim(),
+          counterparty: document.getElementById("dParty").value.trim(),
+          due: document.getElementById("dDue").value,
+          amount: Number(document.getElementById("dAmt").value||0),
+          note: document.getElementById("dNote").value.trim(),
+        };
+        if(!item.name || !item.counterparty || !item.due || !item.amount){
+          showToast("Gagal", "Lengkapi semua field wajib.");
+          return;
+        }
+        addDebtItem(kind, item);
+        closeDebtModal();
+      });
+
+      // close on overlay click
+      document.getElementById("modalDebt").addEventListener("click", (e)=>{
+        if(e.target.id === "modalDebt") closeDebtModal();
+      });
+    };
+
+    const closeDebtModal = () => {
+      const m = document.getElementById("modalDebt");
+      if(m) m.remove();
+    };
+
+    /**************
+     * CALCULATORS
+     **************/
+
+    const calcMargin = () => {
+      const hpp = Number(el("cHpp")?.value||0);
+      const margin = Number(el("cMargin")?.value||0) / 100;
+      const priceInput = Number(el("cPrice")?.value||0);
+
+      const rec = hpp * (1 + margin);
+      const profit = Math.max(0, rec - hpp);
+
+      const realMargin = priceInput > 0 ? (priceInput - hpp) / Math.max(1, priceInput) : 0;
+
+      if(el("oPrice")) el("oPrice").textContent = rupiah(rec);
+      if(el("oProfit")) el("oProfit").textContent = rupiah(profit);
+      if(el("oReal")) el("oReal").textContent = priceInput>0 ? (realMargin*100).toFixed(1) + "%" : "-";
+    };
+
+    const calcBEP = () => {
+      const fixed = Number(el("bFixed")?.value||0);
+      const price = Number(el("bPrice")?.value||0);
+      const hpp = Number(el("bHpp")?.value||0);
+      const contrib = Math.max(0, price - hpp);
+      const unit = contrib > 0 ? Math.ceil(fixed / contrib) : 0;
+      const sales = unit * price;
+
+      if(el("bContrib")) el("bContrib").textContent = rupiah(contrib);
+      if(el("bUnit")) el("bUnit").textContent = unit ? unit.toLocaleString("id-ID") + " unit" : "-";
+      if(el("bSales")) el("bSales").textContent = unit ? rupiah(sales) : "-";
+    };
+
+    const calcLoan = () => {
+      const p = Number(el("lPrincipal")?.value||0);
+      const rate = Number(el("lRate")?.value||0) / 100;
+      const tenor = Math.max(1, Number(el("lTenor")?.value||1));
+
+      // flat: interest total = p * rate * (tenor/12)
+      const interest = p * rate * (tenor/12);
+      const total = p + interest;
+      const monthly = total / tenor;
+
+      if(el("lMonthly")) el("lMonthly").textContent = rupiah(monthly);
+      if(el("lTotal")) el("lTotal").textContent = rupiah(total);
+      if(el("lInterest")) el("lInterest").textContent = rupiah(interest);
+    };
+
+    /**************
+     * HELPERS
+     **************/
+
+    const escapeHTML = (s) => String(s||"")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+
+    const escapeAttr = (s) => escapeHTML(s).replaceAll("\n"," ");
+
+    const csvSafe = (s) => {
+      const x = String(s||"");
+      if(x.includes(",") || x.includes("\n") || x.includes('"')){
+        return '"' + x.replaceAll('"','""') + '"';
+      }
+      return x;
+    };
+
+    /**************
+     * EVENTS
+     **************/
+
+    // Top buttons
+    el("btnQuickAdd").addEventListener("click", openQuickAdd);
+    el("btnExport").addEventListener("click", exportJSON);
+    el("btnImport").addEventListener("click", openImport);
+
+    el("btnReset").addEventListener("click", ()=>{
+      if(!confirm("Reset demo? Semua data akan kembali ke default.")) return;
+      state = defaultData();
+      save();
+      showToast("Reset", "Data demo dipulihkan.");
+      render();
+    });
+
+    // Modal TX
+    el("closeTx").addEventListener("click", ()=>closeModal("modalTx"));
+    el("btnTxCancel").addEventListener("click", ()=>closeModal("modalTx"));
+    el("modalTx").addEventListener("click", (e)=>{ if(e.target.id==="modalTx") closeModal("modalTx"); });
+
+    el("txType").addEventListener("change", hydrateQuickAddCategories);
+
+    el("txForm").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const tx = {
+        date: el("txDate").value,
+        type: el("txType").value,
+        amount: Number(el("txAmount").value||0),
+        category: el("txCategory").value,
+        method: el("txMethod").value,
+        note: el("txNote").value.trim(),
+      };
+      if(!tx.date || !tx.type || !tx.amount || !tx.category || !tx.method){
+        showToast("Gagal", "Lengkapi semua field wajib.");
+        return;
+      }
+      addTransaction(tx);
+      closeModal("modalTx");
+    });
+
+    // Modal Invoice
+    el("closeInv").addEventListener("click", ()=>closeModal("modalInv"));
+    el("btnInvCancel").addEventListener("click", ()=>closeModal("modalInv"));
+    el("modalInv").addEventListener("click", (e)=>{ if(e.target.id==="modalInv") closeModal("modalInv"); });
+
+    el("invForm").addEventListener("submit", (e)=>{
+      e.preventDefault();
+      const inv = {
+        no: el("invNo").value.trim(),
+        date: el("invDate").value,
+        due: el("invDue").value,
+        customer: el("invCustomer").value.trim(),
+        contact: el("invContact").value.trim(),
+        desc: el("invDesc").value.trim(),
+        total: Number(el("invTotal").value||0),
+      };
+      if(!inv.no || !inv.date || !inv.due || !inv.customer || !inv.desc || !inv.total){
+        showToast("Gagal", "Lengkapi field wajib.");
+        return;
+      }
+      // prevent duplicate invoice no
+      if(state.invoices.some(x=>x.no===inv.no)){
+        showToast("Gagal", "Nomor invoice sudah dipakai.");
+        return;
+      }
+
+      addInvoice(inv);
+      bumpInvoiceNo();
+      save();
+      closeModal("modalInv");
+    });
+
+    // Modal Import
+    el("closeImport").addEventListener("click", ()=>closeModal("modalImport"));
+    el("btnImportCancel").addEventListener("click", ()=>closeModal("modalImport"));
+    el("btnImportDo").addEventListener("click", doImport);
+    el("modalImport").addEventListener("click", (e)=>{ if(e.target.id==="modalImport") closeModal("modalImport"); });
+
+    // Global esc
+    window.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape"){
+        closeModal("modalTx");
+        closeModal("modalInv");
+        closeModal("modalImport");
+        closeDebtModal();
+      }
+    });
+
+    // Expose some functions
+    window.setPage = setPage;
+    window.openQuickAdd = openQuickAdd;
+    window.openInvoice = openInvoice;
+    window.exportCSV = exportCSV;
+    window.exportInvoicesCSV = exportInvoicesCSV;
+
+    window.deleteTransaction = deleteTransaction;
+    window.deleteInvoice = deleteInvoice;
+    window.markInvoicePaid = markInvoicePaid;
+    window.printInvoice = printInvoice;
+
+    window.openAddDebt = openAddDebt;
+    window.closeDebtItem = closeDebtItem;
+    window.deleteDebtItem = deleteDebtItem;
+
+    window.saveSettings = saveSettings;
+    window.generateInvoiceNo = generateInvoiceNo;
+
+    window.addCategory = addCategory;
+    window.deleteCategory = deleteCategory;
+
+    window.calcMargin = calcMargin;
+    window.calcBEP = calcBEP;
+    window.calcLoan = calcLoan;
+
+    /**************
+     * INIT
+     **************/
+
+    // hydrate category select in tx modal
+    hydrateQuickAddCategories();
+
+    // set default date
+    el("txDate").value = todayISO();
+
+    // initial render
+    render();
+
+    // welcome
+    setTimeout(()=>{
+      showToast("GazelBooks MVP", "Siap dipakai. Tambah transaksi dulu biar kelihatan laporan & dashboard.");
+    }, 500);
+  </script>
+</body>
+</html>
